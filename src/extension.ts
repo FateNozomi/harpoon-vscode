@@ -1,5 +1,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
+import { homedir } from 'os';
+import path from 'path';
 import * as vscode from 'vscode';
 
 const states = ['globalState', 'workspaceState'] as const;
@@ -18,12 +20,15 @@ export function activate(context: vscode.ExtensionContext) {
     'Congratulations, your extension "harpoon-vscode" is now active!'
   );
 
-  const disposables: vscode.Disposable[] = [];
+  const storedFiles = context[getState()].get<string[]>(key);
+  if (storedFiles) {
+    files.push(...storedFiles);
+  }
 
   // The command has been defined in the package.json file
   // Now provide the implementation of the command with registerCommand
   // The commandId parameter must match the command field in package.json
-  disposables.push(
+  context.subscriptions.push(
     vscode.commands.registerCommand('harpoon-vscode.addToHarpoon', () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
@@ -31,17 +36,18 @@ export function activate(context: vscode.ExtensionContext) {
       }
 
       files.push(editor.document.fileName);
-
-      // Display a message box to the user
+      context[getState()].update(key, files);
       vscode.window.showInformationMessage('Added to Harpoon');
     })
   );
 
-  disposables.push(
+  context.subscriptions.push(
     vscode.commands.registerCommand('harpoon-vscode.goToHarpoon', async () => {
       const quickPick = vscode.window.createQuickPick();
       quickPick.items = getQuickPickItems();
       quickPick.matchOnDescription = true;
+      quickPick.placeholder = 'Search files by name';
+
       quickPick.onDidChangeSelection((selection) => {
         if (selection[0]) {
           const uri = vscode.Uri.file(selection[0].description!);
@@ -56,6 +62,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         files.splice(index, 1);
+        context[getState()].update(key, files);
         quickPick.items = getQuickPickItems();
       });
 
@@ -64,14 +71,80 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  disposables.push(
-    vscode.commands.registerCommand('harpoon-vscode.editHarpoon', () => {})
-  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('harpoon-vscode.editHarpoon', async () => {
+      const homeDir = homedir();
+      if (!homeDir) {
+        return;
+      }
 
-  context.subscriptions.push(...disposables);
+      const harpoonPath = path.join(homeDir, '.vscode', '.harpoon');
+      const harpoonUri = vscode.Uri.file(harpoonPath);
+
+      const workspaceEdit = new vscode.WorkspaceEdit();
+      workspaceEdit.createFile(harpoonUri, { overwrite: true });
+      await vscode.workspace.applyEdit(workspaceEdit);
+
+      const harpoonDoc = await vscode.workspace.openTextDocument(harpoonUri);
+      const harpoonEditor = await vscode.window.showTextDocument(harpoonDoc);
+      await harpoonEditor.edit((editBuilder) => {
+        editBuilder.insert(new vscode.Position(0, 0), files.join('\n'));
+      });
+
+      const documentDisposables: vscode.Disposable[] = [];
+      documentDisposables.push(
+        vscode.workspace.onDidSaveTextDocument((textDocument) => {
+          if (textDocument.uri.fsPath !== harpoonUri.fsPath) {
+            return;
+          }
+
+          const content = textDocument.getText();
+          const parsedFiles = content
+            .split(/\r?\n/)
+            .filter((s) => s && s.trim());
+          files.length = 0;
+          files.push(...parsedFiles);
+          context[getState()].update(key, files);
+          vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+        })
+      );
+
+      documentDisposables.push(
+        vscode.window.onDidChangeVisibleTextEditors((textEditors) => {
+          console.log(textEditors);
+          const harpoonEditorOpened = textEditors.some(
+            (editor) => editor.document.uri.fsPath === harpoonUri.fsPath
+          );
+          if (harpoonEditorOpened) {
+            return;
+          }
+
+          console.log(`onDidChangeVisibleTextEditors: saving Harpoon Editor`);
+          saveHarpoonEditor();
+        })
+      );
+
+      documentDisposables.push(
+        vscode.workspace.onDidCloseTextDocument((textDocument) => {
+          const isHarpoonDocumentClosed =
+            textDocument.uri.fsPath === harpoonUri.fsPath;
+          if (!isHarpoonDocumentClosed) {
+            return;
+          }
+
+          console.log('onDidCloseTextDocument');
+        })
+      );
+
+      const saveHarpoonEditor = () => {
+        vscode.workspace.fs.delete(harpoonUri);
+        documentDisposables.forEach((d) => d.dispose());
+      };
+    })
+  );
 }
 
-const getState = () =>
+const getState = (): State =>
   vscode.workspace.workspaceFolders &&
   vscode.workspace.workspaceFolders.length !== 0
     ? states[1]
