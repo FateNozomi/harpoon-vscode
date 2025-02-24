@@ -10,7 +10,7 @@ type State = (typeof states)[number];
 const key = 'harpoon.files';
 
 export function activate(context: vscode.ExtensionContext) {
-  const harpoonUri = getHarpoonUri();
+  const harpoonUri = getHarpoonUri(context.storageUri);
 
   let isEditing = false;
   const files: string[] = [];
@@ -126,13 +126,15 @@ export function activate(context: vscode.ExtensionContext) {
   );
 }
 
-const getHarpoonUri = (): vscode.Uri | undefined => {
-  const homeDir = homedir();
-  if (!homeDir) {
+const getHarpoonUri = (
+  storageUri: vscode.Uri | undefined
+): vscode.Uri | undefined => {
+  if (!storageUri) {
     return;
   }
 
-  const harpoonPath = path.join(homeDir, '.vscode', '.harpoon');
+  const storageFolder = path.dirname(storageUri.fsPath);
+  const harpoonPath = path.join(storageFolder, '.harpoon');
   return vscode.Uri.file(harpoonPath);
 };
 
