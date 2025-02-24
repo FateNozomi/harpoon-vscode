@@ -1,4 +1,4 @@
-# harpoon-vscode README
+# harpoon-vscode
 
 `harpoon-vscode` is a minimal port of the `neovim` extension `harpoon` created by `ThePrimeagen`.
 
