@@ -1,6 +1,5 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
-import { homedir } from 'os';
 import path from 'path';
 import * as vscode from 'vscode';
 
@@ -34,7 +33,6 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand('harpoon-vscode.goToHarpoon', async () => {
-      console.log(context.storageUri?.fsPath);
       const quickPick = vscode.window.createQuickPick();
       quickPick.items = getQuickPickItems(files);
       quickPick.matchOnDescription = true;
@@ -73,8 +71,6 @@ export function activate(context: vscode.ExtensionContext) {
       workspaceEdit.createFile(harpoonUri, { overwrite: true });
       await vscode.workspace.applyEdit(workspaceEdit);
 
-      console.log('applyEdit');
-
       const harpoonDoc = await vscode.workspace.openTextDocument(harpoonUri);
       const harpoonEditor = await vscode.window.showTextDocument(harpoonDoc);
 
@@ -104,7 +100,6 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
 
-      console.log('onDidSaveTextDocument');
       const content = textDocument.getText();
       const parsedFiles = content.split(/\r?\n/).filter((s) => s && s.trim());
 
