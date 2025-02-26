@@ -2,7 +2,7 @@
   "name": "harpoon-vscode",
   "displayName": "harpoon-vscode",
   "description": "Harpoon neovim port",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "license": "MIT",
   "repository": {
     "type": "git",
