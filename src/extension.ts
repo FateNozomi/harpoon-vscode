@@ -33,8 +33,11 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand('harpoon-vscode.goToHarpoon', async () => {
+      const quickPickItems = getQuickPickItems(files);
+      filterQuickPickItems(quickPickItems);
+
       const quickPick = vscode.window.createQuickPick();
-      quickPick.items = getQuickPickItems(files);
+      quickPick.items = quickPickItems;
       quickPick.matchOnDescription = true;
       quickPick.placeholder = 'Search files by name';
 
@@ -145,6 +148,28 @@ const getQuickPickItems = (files: string[]) =>
     description: file,
     buttons: [{ iconPath: new vscode.ThemeIcon('close') }],
   }));
+
+const filterQuickPickItems = (quickPickItems: vscode.QuickPickItem[]) => {
+  const editor = vscode.window.activeTextEditor;
+  if (!editor) {
+    return;
+  }
+
+  const index = quickPickItems.findIndex(
+    (x) => x.description === editor.document.uri.fsPath
+  );
+
+  if (index < 0) {
+    return;
+  }
+
+  const activeQuickPickItem = quickPickItems.splice(index, 1);
+  quickPickItems.unshift({
+    label: '',
+    kind: vscode.QuickPickItemKind.Separator,
+  });
+  quickPickItems.unshift(...activeQuickPickItem);
+};
 
 const getFileName = (path: string) =>
   path.split('\\').pop()?.split('/').pop() ?? '';
