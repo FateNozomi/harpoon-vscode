@@ -143,7 +143,6 @@ const getQuickPickItems = (files: string[]) =>
   files.map<vscode.QuickPickItem>((file) => ({
     label: getFileName(file),
     description: file,
-    iconPath: new vscode.ThemeIcon('file'),
     buttons: [{ iconPath: new vscode.ThemeIcon('close') }],
   }));
 
