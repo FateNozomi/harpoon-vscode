@@ -1,5 +1,3 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import path from 'path';
 import * as vscode from 'vscode';
 
@@ -70,6 +68,9 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
 
+      const editor = vscode.window.activeTextEditor;
+      const line = editor ? files.indexOf(editor.document.uri.fsPath) : -1;
+
       const workspaceEdit = new vscode.WorkspaceEdit();
       workspaceEdit.createFile(harpoonUri, { overwrite: true });
       await vscode.workspace.applyEdit(workspaceEdit);
@@ -82,6 +83,14 @@ export function activate(context: vscode.ExtensionContext) {
         await harpoonEditor.edit((editBuilder) => {
           editBuilder.insert(new vscode.Position(0, 0), files.join('\n'));
         });
+
+        if (line > -1) {
+          harpoonEditor.selection = new vscode.Selection(
+            new vscode.Position(line, 0),
+            new vscode.Position(line, 0)
+          );
+        }
+
         await harpoonEditor.document.save();
       } finally {
         isEditing = false;
@@ -109,6 +118,16 @@ export function activate(context: vscode.ExtensionContext) {
       files.length = 0;
       files.push(...parsedFiles);
       context[getState()].update(key, files);
+
+      const line =
+        vscode.window.visibleTextEditors.find(
+          (e) => e.document.uri.fsPath === harpoonUri.fsPath
+        )?.selection.active.line ?? -1;
+      if (files.length !== 0 && line >= 0 && line < files.length) {
+        const selectedFile = files[line];
+        const uri = vscode.Uri.file(selectedFile);
+        vscode.window.showTextDocument(uri);
+      }
 
       for (const tabGroup of vscode.window.tabGroups.all) {
         const foundTabs = tabGroup.tabs.filter(
