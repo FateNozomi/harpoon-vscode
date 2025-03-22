@@ -1,10 +1,10 @@
-import path from 'path';
-import * as vscode from 'vscode';
+import path from "path";
+import * as vscode from "vscode";
 
-const states = ['globalState', 'workspaceState'] as const;
+const states = ["globalState", "workspaceState"] as const;
 type State = (typeof states)[number];
 
-const key = 'harpoon.files';
+const key = "harpoon.files";
 
 export function activate(context: vscode.ExtensionContext) {
   const harpoonUri = getHarpoonUri(context.storageUri);
@@ -17,7 +17,7 @@ export function activate(context: vscode.ExtensionContext) {
   }
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('harpoon-vscode.addToHarpoon', () => {
+    vscode.commands.registerCommand("harpoon-vscode.addToHarpoon", () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
         return;
@@ -25,19 +25,19 @@ export function activate(context: vscode.ExtensionContext) {
 
       files.push(editor.document.fileName);
       context[getState()].update(key, files);
-      vscode.window.showInformationMessage('Added to Harpoon');
-    })
+      vscode.window.showInformationMessage("Added to Harpoon");
+    }),
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('harpoon-vscode.goToHarpoon', async () => {
+    vscode.commands.registerCommand("harpoon-vscode.goToHarpoon", async () => {
       const quickPickItems = getQuickPickItems(files);
       filterQuickPickItems(quickPickItems);
 
       const quickPick = vscode.window.createQuickPick();
       quickPick.items = quickPickItems;
       quickPick.matchOnDescription = true;
-      quickPick.placeholder = 'Search files by name';
+      quickPick.placeholder = "Search files by name";
 
       quickPick.onDidChangeSelection((selection) => {
         if (selection[0]) {
@@ -59,11 +59,11 @@ export function activate(context: vscode.ExtensionContext) {
 
       quickPick.onDidHide(() => quickPick.dispose());
       quickPick.show();
-    })
+    }),
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('harpoon-vscode.editHarpoon', async () => {
+    vscode.commands.registerCommand("harpoon-vscode.editHarpoon", async () => {
       if (!harpoonUri) {
         return;
       }
@@ -81,13 +81,13 @@ export function activate(context: vscode.ExtensionContext) {
       try {
         isEditing = true;
         await harpoonEditor.edit((editBuilder) => {
-          editBuilder.insert(new vscode.Position(0, 0), files.join('\n'));
+          editBuilder.insert(new vscode.Position(0, 0), files.join("\n"));
         });
 
         if (line > -1) {
           harpoonEditor.selection = new vscode.Selection(
             new vscode.Position(line, 0),
-            new vscode.Position(line, 0)
+            new vscode.Position(line, 0),
           );
         }
 
@@ -95,7 +95,7 @@ export function activate(context: vscode.ExtensionContext) {
       } finally {
         isEditing = false;
       }
-    })
+    }),
   );
 
   context.subscriptions.push(
@@ -121,7 +121,7 @@ export function activate(context: vscode.ExtensionContext) {
 
       const line =
         vscode.window.visibleTextEditors.find(
-          (e) => e.document.uri.fsPath === harpoonUri.fsPath
+          (e) => e.document.uri.fsPath === harpoonUri.fsPath,
         )?.selection.active.line ?? -1;
       if (files.length !== 0 && line >= 0 && line < files.length) {
         const selectedFile = files[line];
@@ -133,25 +133,25 @@ export function activate(context: vscode.ExtensionContext) {
         const foundTabs = tabGroup.tabs.filter(
           (tab) =>
             tab.input instanceof vscode.TabInputText &&
-            tab.input.uri.fsPath === harpoonUri.fsPath
+            tab.input.uri.fsPath === harpoonUri.fsPath,
         );
         await vscode.window.tabGroups.close(foundTabs, false);
       }
 
       vscode.workspace.fs.delete(harpoonUri);
-    })
+    }),
   );
 }
 
 const getHarpoonUri = (
-  storageUri: vscode.Uri | undefined
+  storageUri: vscode.Uri | undefined,
 ): vscode.Uri | undefined => {
   if (!storageUri) {
     return;
   }
 
   const storageFolder = path.dirname(storageUri.fsPath);
-  const harpoonPath = path.join(storageFolder, '.harpoon');
+  const harpoonPath = path.join(storageFolder, ".harpoon");
   return vscode.Uri.file(harpoonPath);
 };
 
@@ -165,7 +165,7 @@ const getQuickPickItems = (files: string[]) =>
   files.map<vscode.QuickPickItem>((file) => ({
     label: getFileName(file),
     description: file,
-    buttons: [{ iconPath: new vscode.ThemeIcon('close') }],
+    buttons: [{ iconPath: new vscode.ThemeIcon("close") }],
   }));
 
 const filterQuickPickItems = (quickPickItems: vscode.QuickPickItem[]) => {
@@ -175,7 +175,7 @@ const filterQuickPickItems = (quickPickItems: vscode.QuickPickItem[]) => {
   }
 
   const index = quickPickItems.findIndex(
-    (x) => x.description === editor.document.uri.fsPath
+    (x) => x.description === editor.document.uri.fsPath,
   );
 
   if (index < 0) {
@@ -184,14 +184,14 @@ const filterQuickPickItems = (quickPickItems: vscode.QuickPickItem[]) => {
 
   const activeQuickPickItem = quickPickItems.splice(index, 1);
   quickPickItems.unshift({
-    label: '',
+    label: "",
     kind: vscode.QuickPickItemKind.Separator,
   });
   quickPickItems.unshift(...activeQuickPickItem);
 };
 
 const getFileName = (path: string) =>
-  path.split('\\').pop()?.split('/').pop() ?? '';
+  path.split("\\").pop()?.split("/").pop() ?? "";
 
 // This method is called when your extension is deactivated
 export function deactivate() {}
